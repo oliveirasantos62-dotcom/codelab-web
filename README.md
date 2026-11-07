@@ -1,69 +1,65 @@
-# CodeLab Web — Kotlin, C e Java
+# CodeLab Web — versão Vercel (sem Render)
 
-IDE local com interface inspirada no VS Code. Permite editar código no navegador, enviar entrada padrão (stdin), compilar e executar programas reais usando os compiladores instalados no seu computador.
+IDE estática para Kotlin, C e Java. A interface pode ser publicada na Vercel sem backend próprio. Projetos, pastas e arquivos ficam no `localStorage` do navegador. É possível criar, renomear/mover, excluir, importar e exportar arquivos em ZIP.
 
-## Requisitos
+## Importante: como a execução funciona
 
-- Windows 10/11 (ou Linux/macOS com ajustes nos comandos de instalação)
-- Node.js LTS: https://nodejs.org/
-- Kotlin: compilador `kotlinc` disponível no PATH
-- Java JDK (incluindo `java` e `javac`) disponível no PATH
-- GCC (comando `gcc`) disponível no PATH
+O navegador não compila nativamente Kotlin/JVM, C e Java. Para manter a execução sem Render ou outro backend próprio, esta versão chama a API pública Piston (`https://emkc.org/api/v2/piston`) diretamente do navegador. Portanto:
 
-## Instalação no Windows
+- é necessário estar conectado à internet;
+- a execução depende da disponibilidade, CORS, limites e runtimes oferecidos pela API externa;
+- o código-fonte e o stdin são enviados ao serviço Piston para compilação/execução;
+- não envie senhas, tokens, chaves ou código confidencial;
+- se o serviço bloquear chamadas do browser ou ficar indisponível, a execução não funcionará até usar outro provedor ou um backend próprio.
 
-1. Instale o Node.js LTS e reinicie o terminal.
-2. Instale um JDK, por exemplo Eclipse Temurin 21: https://adoptium.net/temurin/releases/
-3. Instale o GCC. Uma opção é MSYS2: https://www.msys2.org/ . No terminal **MSYS2 UCRT64**, execute `pacman -S --needed mingw-w64-ucrt-x86_64-gcc`. Adicione `C:\msys64\ucrt64\bin` ao PATH do Windows.
-4. Instale o compilador Kotlin: https://kotlinlang.org/docs/command-line.html . Baixe o compilador, extraia e adicione a pasta `bin` do Kotlin ao PATH. O comando `kotlinc` precisa funcionar.
-5. Feche e abra novamente o terminal. Teste `node -v`, `java -version`, `javac -version`, `gcc --version` e `kotlinc -version`.
+Os arquivos e projetos não são enviados à Vercel nem sincronizados entre dispositivos: ficam no armazenamento local do navegador. Limpar dados do navegador pode apagá-los. Use **Exportar ZIP** para fazer backup.
 
-## Executar
+## Publicar na Vercel
 
 1. Extraia o ZIP.
-2. Dê duplo clique em `INICIAR-WINDOWS.bat`.
-3. O projeto não precisa baixar dependências npm: usa apenas módulos nativos do Node.js.
-4. O navegador abrirá em `http://localhost:4173`.
-5. Escolha Kotlin, C ou Java, escreva o código e clique em **Executar**. Use **Entrada (stdin)** para informar dados ao programa.
+2. Crie um repositório no GitHub e envie o conteúdo desta pasta.
+3. Na Vercel, clique em **Add New → Project** e importe o repositório.
+4. Configure:
+   - Framework Preset: **Other**
+   - Root Directory: `./`
+   - Build Command: deixe vazio
+   - Output Directory: `public`
+   - Install Command: deixe vazio
+5. Clique em **Deploy**.
 
-Também é possível iniciar manualmente:
+O `vercel.json` na raiz mantém o projeto como site estático. Não há API serverless nem serviço Render.
+
+## Rodar localmente
+
+Como é um site estático, pode abrir `public/index.html` diretamente no navegador. Para testar com servidor local, com Node.js instalado:
 
 ```bash
-npm start
+npx serve public -l 4173
 ```
 
-Depois acesse http://localhost:4173.
+Acesse `http://localhost:4173`.
 
-## O que já está incluído
+## Recursos
 
-- Editor com numeração de linhas, indentação por Tab e atalho Ctrl+Enter.
-- Arquivos de exemplo separados para Kotlin, C e Java.
-- Compilação e execução local de verdade, sem API externa ou chave de serviço.
-- Entrada padrão (stdin), saída padrão, erros e código de saída.
-- Salvamento automático no navegador e botão para salvar/restaurar exemplos.
-- Desafios de lógica em níveis iniciante e intermediário.
-- Interface responsiva em tema escuro.
-
-## Observações importantes
-
-- A execução é local: o código é compilado e executado no seu próprio computador. Não depende de API pública de compilação.
-- Os três toolchains precisam estar instalados e no PATH. O indicador no rodapé mostra se o servidor encontrou os compiladores.
-- O editor salva os arquivos no armazenamento local do navegador; isso não é um sistema de pastas real nem sincroniza entre dispositivos.
-- O terminal é de saída do programa, não um shell interativo. A entrada do programa é enviada pelo campo stdin antes da execução.
-- Este projeto foi pensado para uso local. O servidor escuta somente em `127.0.0.1`; não o exponha publicamente.
-- Programas executados têm limite de tempo, mas ainda rodam com as permissões do seu usuário do sistema. Execute apenas código em que confia.
+- Explorador de arquivos e pastas;
+- criar arquivos e pastas;
+- renomear/mover e excluir arquivos;
+- salvamento automático no `localStorage`;
+- importação e exportação de projetos ZIP;
+- Kotlin, C e Java com entrada padrão (stdin);
+- desafios de lógica;
+- layout responsivo inspirado no VS Code;
+- implantação estática na Vercel.
 
 ## Estrutura
 
 ```text
-CodeLab-Web/
-├── INICIAR-WINDOWS.bat
-├── package.json
-├── README.md
+CodeLab-Web-Vercel/
 ├── public/
 │   ├── index.html
-│   ├── style.css
-│   └── app.js
-└── server/
-    └── index.js
+│   ├── app.js
+│   └── style.css
+├── vercel.json
+├── package.json
+└── README.md
 ```

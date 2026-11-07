@@ -1,7 +1,9 @@
 {
-  "name": "codelab-web",
-  "version": "1.0.0",
+  "name": "codelab-web-vercel",
+  "version": "2.0.0",
   "private": true,
-  "description": "IDE local para praticar Kotlin, C e Java no navegador",
-  "scripts": { "start": "node server/index.js" }
+  "description": "IDE estática para praticar Kotlin, C e Java, com workspace salvo no navegador",
+  "scripts": {
+    "start": "npx serve public -l 4173"
+  }
 }
