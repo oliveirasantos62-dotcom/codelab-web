@@ -1,0 +1,7 @@
+{
+  "name": "codelab-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "IDE local para praticar Kotlin, C e Java no navegador",
+  "scripts": { "start": "node server/index.js" }
+}
