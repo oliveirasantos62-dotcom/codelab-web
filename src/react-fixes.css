@@ -1,0 +1,15 @@
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .65; }
+.hidden { display: none !important; }
+.modal { z-index: 50; }
+.modal-card { max-height: min(85vh, 760px); overflow: auto; }
+.file-tree { overflow: auto; }
+.folder-row { user-select: none; }
+#editor, #stdin { resize: none; }
+.modal-card input { width: 100%; margin: 8px 0 12px; padding: 10px 12px; border: 1px solid #383b49; border-radius: 6px; outline: none; background: #11141c; color: #e7e9ee; font: 12px Inter, sans-serif; }
+.modal-card input:focus { border-color: #8977ff; }
+.statusbar button { border: 0; background: transparent; color: inherit; font: inherit; padding: 0; }
+.statusbar button:hover { text-decoration: underline; }
+.file-menu { padding: 0 5px; border-radius: 3px; }
+.file-menu:hover { background: #383b49; color: white; }
+@media (max-width: 520px) { .sidebar { width: 145px; } .top-actions { gap: 3px; } .ghost { padding: 6px; } .brand small { display: none; } .statusbar { font-size: 8px; } }
