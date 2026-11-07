@@ -1,35 +1,478 @@
 'use strict';
-const STORE_KEY='codelab-workspace-v2';
-const samples={
- 'Kotlin/Main.kt':`fun main() {\n    print("Digite seu nome: ")\n    val nome = readLine() ?: "Pessoa"\n    println("Olá, $nome! Bem-vindo ao Kotlin.")\n\n    val numero = 10\n    println("O dobro de $numero é ${numero * 2}")\n}`,
- 'C/main.c':`#include <stdio.h>\n\nint main(void) {\n    char nome[50];\n    printf("Digite seu nome: ");\n    scanf("%49s", nome);\n    printf("Olá, %s! Bem-vindo ao C.\\n", nome);\n    int numero = 10;\n    printf("O dobro de %d é %d\\n", numero, numero * 2);\n    return 0;\n}`,
- 'Java/Main.java':`import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner entrada = new Scanner(System.in);\n        System.out.print("Digite seu nome: ");\n        String nome = entrada.nextLine();\n        System.out.println("Olá, " + nome + "! Bem-vindo ao Java.");\n        int numero = 10;\n        System.out.println("O dobro de " + numero + " é " + (numero * 2));\n    }\n}`
+const STORE_KEY = 'codelab-workspace-v2';
+const samples = {
+  'Kotlin/Main.kt': `fun main() {\n    print("Digite seu nome: ")\n    val nome = readLine() ?: "Pessoa"\n    println("Olá, $nome! Bem-vindo ao Kotlin.")\n\n    val numero = 10\n    println("O dobro de \$numero é ${numero * 2}")\n}`,
+  'C/main.c': `#include <stdio.h>\n\nint main(void) {\n    char nome[50];\n    printf("Digite seu nome: ");\n    scanf("%49s", nome);\n    printf("Olá, %s! Bem-vindo ao C.\\n", nome);\n    int numero = 10;\n    printf("O dobro de %d é %d\\n", numero, numero * 2);\n    return 0;\n}`,
+  'Java/Main.java': `import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner entrada = new Scanner(System.in);\n        System.out.print("Digite seu nome: ");\n        String nome = entrada.nextLine();\n        System.out.println("Olá, " + nome + "! Bem-vindo ao Java.");\n        int numero = 10;\n        System.out.println("O dobro de " + numero + " é " + (numero * 2));\n    }\n}`,
 };
-const langFor=p=>p.endsWith('.kt')?'kotlin':p.endsWith('.c')?'c':p.endsWith('.java')?'java':null;
-const label={kotlin:'Kotlin',c:'C',java:'Java'};
-let workspace=loadWorkspace(), activePath=Object.keys(workspace.files)[0]||'Kotlin/Main.kt', busy=false;
-const $=id=>document.getElementById(id), editor=$('editor'), output=$('output');
-function loadWorkspace(){try{const x=JSON.parse(localStorage.getItem(STORE_KEY));if(x&&x.files&&Object.keys(x.files).length)return x}catch{}return {files:{...samples},folders:['Kotlin','C','Java']}}
-function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(workspace));$('dirtyMark').textContent='';}catch(e){toast('Não foi possível salvar: armazenamento cheio. Exporte o projeto em ZIP.')}}
-function toast(s){const t=$('toast');t.textContent=s;t.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove('show'),2400)}
-function extIcon(path){const l=langFor(path);return l==='kotlin'?['kt','K']:l==='c'?['c','C']:l==='java'?['java','J']:['other','·']}
-function renderTree(){const tree=$('fileTree');tree.innerHTML='';const folders=new Set(workspace.folders||[]);Object.keys(workspace.files).forEach(p=>{const parts=p.split('/');if(parts.length>1)folders.add(parts.slice(0,-1).join('/'))});[...folders].sort().forEach(folder=>{const row=document.createElement('div');row.className='folder-row';row.innerHTML=`<span>▾</span><span class="folder-icon">📁</span><span></span>`;row.children[2].textContent=folder;tree.appendChild(row);Object.keys(workspace.files).filter(p=>p.startsWith(folder+'/')).sort().forEach(path=>{const b=document.createElement('button');b.className='file '+(path===activePath?'active':'');const [cls,letter]=extIcon(path);const name=path.slice(path.lastIndexOf('/')+1);b.innerHTML=`<i class="${cls}">${letter}</i><span></span><span class="file-menu" title="Ações">···</span>`;b.children[1].textContent=name;b.title=path;b.onclick=()=>openFile(path);b.querySelector('.file-menu').onclick=e=>{e.stopPropagation();fileActions(path)};tree.appendChild(b)})});if(!Object.keys(workspace.files).length)tree.innerHTML='<p class="empty-tree">Nenhum arquivo. Crie um arquivo para começar.</p>'}
-function openFile(path){if(!(path in workspace.files))return;activePath=path;editor.value=workspace.files[path];const l=langFor(path);$('tabName').textContent=path.split('/').pop();const [cls,letter]=extIcon(path);$('tabIcon').className=cls;$('tabIcon').textContent=letter;$('filePath').textContent='MEU PROJETO / '+path;$('languageLabel').textContent=l?label[l]:'Texto';$('runBtn').disabled=!l;lineCount();updateCursor();renderTree();output.textContent='Arquivo aberto: '+path;$('runStatus').textContent='Pronto'}
-function lineCount(){const n=editor.value.split('\n').length;$('lineNumbers').textContent=Array.from({length:n},(_,i)=>i+1).join('\n')}
-function updateCursor(){const before=editor.value.slice(0,editor.selectionStart).split('\n');$('cursorPos').textContent=`Ln ${before.length}, Col ${before.at(-1).length+1}`}
-function saveActive(){if(activePath)workspace.files[activePath]=editor.value;persist();}
-function createFile(){let path=prompt('Caminho do arquivo (ex.: Kotlin/Exercicio.kt):','Kotlin/Novo.kt');if(!path)return;path=path.trim().replace(/^\/+|\\/g,'');if(!path||path.split('/').some(x=>!x||x==='..'))return toast('Caminho inválido.');if(path in workspace.files)return toast('Já existe um arquivo com esse nome.');workspace.files[path]=langFor(path)?'// Escreva seu código aqui\n':'';workspace.folders=[...new Set([...(workspace.folders||[]),path.split('/').slice(0,-1).join('/')].filter(Boolean))];persist();renderTree();openFile(path);toast('Arquivo criado.')}
-function createFolder(){let name=prompt('Nome da pasta (ex.: Algoritmos):');if(!name)return;name=name.trim().replace(/^\/+|\\/g,'');if(!name||name.split('/').some(x=>!x||x==='..'))return toast('Nome inválido.');workspace.folders=[...new Set([...(workspace.folders||[]),name])];persist();renderTree();toast('Pasta criada.')}
-function fileActions(path){const action=prompt(`Ação para ${path}:\n1 - Renomear/mover\n2 - Excluir\nDigite 1 ou 2:`);if(action==='1'){const next=prompt('Novo caminho:',path);if(!next||next===path)return;if(next.split('/').some(x=>!x||x==='..')||next in workspace.files)return toast('Novo caminho inválido ou já existente.');workspace.files[next]=workspace.files[path];delete workspace.files[path];if(activePath===path)activePath=next;persist();renderTree();openFile(activePath);toast('Arquivo renomeado.')}else if(action==='2'){if(!confirm(`Excluir ${path}?`))return;delete workspace.files[path];if(activePath===path)activePath=Object.keys(workspace.files)[0]||'';persist();renderTree();if(activePath)openFile(activePath);else{editor.value='';$('tabName').textContent='Nenhum arquivo';lineCount()}toast('Arquivo excluído.')}}
-editor.addEventListener('input',()=>{lineCount();updateCursor();workspace.files[activePath]=editor.value;$('dirtyMark').textContent='●';persistDebounced()});editor.addEventListener('scroll',()=>$('lineNumbers').scrollTop=editor.scrollTop);editor.addEventListener('click',updateCursor);editor.addEventListener('keyup',updateCursor);editor.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();editor.setRangeText('    ',editor.selectionStart,editor.selectionEnd,'end');lineCount();updateCursor()}if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();execute()}});
-let saveTimer;function persistDebounced(){clearTimeout(saveTimer);saveTimer=setTimeout(persist,250)}
-async function execute(){if(busy)return;const language=langFor(activePath);if(!language)return toast('Escolha um arquivo .kt, .c ou .java.');saveActive();busy=true;$('runBtn').disabled=true;$('runBtn').textContent='Executando…';$('runStatus').textContent='Compilando remotamente…';output.className='';output.textContent='Enviando código para o serviço de compilação…';try{const runtimes=await fetch('https://emkc.org/api/v2/piston/runtimes');if(!runtimes.ok)throw new Error('Não foi possível consultar os compiladores.');const available=await runtimes.json();const aliases={kotlin:['kotlin'],c:['c','gcc'],java:['java']};const runtime=available.find(x=>aliases[language].includes(x.language));if(!runtime)throw new Error(`O serviço não anunciou suporte a ${label[language]}.`);const filename=activePath.split('/').pop();const payload={language:runtime.language,version:runtime.version,files:[{name:filename,content:editor.value}],stdin:$('stdin').value,args:[],compile_timeout:20000,run_timeout:8000,compile_memory_limit:-1,run_memory_limit:-1};const response=await fetch('https://emkc.org/api/v2/piston/execute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw new Error(data.message||`Erro HTTP ${response.status}`);let text='';if(data.compile){text+='[COMPILAÇÃO]\n'+(data.compile.output||'(sem mensagens)')+'\nCódigo: '+data.compile.code+'\n\n'}if(data.run){text+='[EXECUÇÃO]\n'+(data.run.stdout||'')+(data.run.stderr?'\n[ERRO]\n'+data.run.stderr:'')+'\n\nCódigo de saída: '+data.run.code}else{text+=data.message||'O serviço não retornou resultado.'}output.textContent=text;const ok=(!data.compile||data.compile.code===0)&&data.run&&data.run.code===0;output.className=ok?'success':'error';$('runStatus').textContent=ok?'Concluído':'Verifique a saída'}catch(e){output.textContent='Não foi possível executar o código.\n\n'+e.message+'\n\nVerifique sua conexão e tente novamente. A execução depende da API pública Piston e pode estar indisponível, limitada ou bloquear chamadas do navegador.';output.className='error';$('runStatus').textContent='Falha na execução'}finally{busy=false;$('runBtn').disabled=false;$('runBtn').innerHTML='<span>▶</span> Executar'}}
-$('runBtn').onclick=execute;$('saveBtn').onclick=()=>{saveActive();toast('Projeto salvo neste navegador.')};$('newFile').onclick=$('newFileBottom').onclick=createFile;$('newFolder').onclick=createFolder;$('clearOutput').onclick=()=>{output.textContent='Saída limpa.';output.className=''};$('togglePanel').onclick=()=>document.querySelector('.bottom-panel').classList.toggle('collapsed');
-document.querySelectorAll('.panel-tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.panel-tab').forEach(x=>x.classList.toggle('active',x===b));$('terminal').classList.toggle('hidden',b.dataset.panel!=='terminal');$('stdinPanel').classList.toggle('hidden',b.dataset.panel!=='stdin')});
-$('exportBtn').onclick=async()=>{saveActive();if(!window.JSZip)return toast('Biblioteca ZIP não carregou. Verifique a internet.');const zip=new JSZip();Object.entries(workspace.files).forEach(([p,c])=>zip.file(p,c));(workspace.folders||[]).forEach(p=>zip.folder(p));const blob=await zip.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='CodeLab-Projetos.zip';a.click();URL.revokeObjectURL(a.href);toast('ZIP exportado.')};
-$('importBtn').onclick=()=>$('zipInput').click();$('zipInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const zip=await JSZip.loadAsync(f);const imported={};const folders=[];for(const [p,item] of Object.entries(zip.files)){if(item.dir){folders.push(p.replace(/\/$/,''));continue}if(p.split('/').some(x=>x==='..'))continue;imported[p]=await item.async('string')}if(!Object.keys(imported).length)throw new Error('O ZIP não contém arquivos.');if(!confirm(`Importar ${Object.keys(imported).length} arquivo(s)? Arquivos com o mesmo caminho serão substituídos.`))return;workspace.files={...workspace.files,...imported};workspace.folders=[...new Set([...(workspace.folders||[]),...folders])];persist();renderTree();const first=Object.keys(imported)[0];openFile(first);toast('Projeto importado.')}catch(err){toast('Falha ao importar ZIP: '+err.message)}finally{e.target.value=''}};
-const challenges=[['Par ou ímpar','iniciante','Leia um inteiro e informe se é par ou ímpar.','Use o operador módulo (%).'],['Média de notas','iniciante','Leia três notas, calcule a média e informe aprovação com média maior ou igual a 7.','Pratique entrada, operações e if/else.'],['Tabuada','iniciante','Leia um número e mostre sua tabuada de 1 até 10.','Use uma estrutura de repetição.'],['Fatorial','intermediario','Calcule o fatorial de um inteiro não negativo. Ex.: 5! = 120.','Comece com um laço e depois tente recursão.'],['Número primo','intermediario','Verifique se um número é primo, tratando 0, 1 e negativos.','Teste divisores até a raiz quadrada.'],['Maior e menor do vetor','intermediario','Leia 10 inteiros e encontre o maior e o menor.','Use vetor/array e laço.'],['Contagem de vogais','intermediario','Leia uma frase e conte suas vogais.','Percorra os caracteres e normalize maiúsculas.']];
-function showChallenges(filter='all'){$('challengeList').innerHTML='';challenges.filter(c=>filter==='all'||c[1]===filter).forEach(c=>{const d=document.createElement('article');d.className='challenge';const h=document.createElement('h3');h.textContent=c[0];const tag=document.createElement('small');tag.textContent=c[1].toUpperCase();const p=document.createElement('p');p.textContent=c[2];const hint=document.createElement('p');hint.textContent='💡 '+c[3];d.append(h,tag,p,hint);$('challengeList').append(d)})}
-function openChallenges(){$('challengeModal').classList.remove('hidden');showChallenges()}$('openChallenges').onclick=$('challengeIcon').onclick=openChallenges;$('closeChallenges').onclick=()=>$('challengeModal').classList.add('hidden');$('challengeModal').onclick=e=>{if(e.target===$('challengeModal'))$('challengeModal').classList.add('hidden')};document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.toggle('active',x===b));showChallenges(b.dataset.filter)});
-$('compilerStatus').onclick=()=>$('helpModal').classList.remove('hidden');$('closeHelp').onclick=()=>$('helpModal').classList.add('hidden');
-renderTree();openFile(activePath);persist();
+const langFor = (p) =>
+  p.endsWith('.kt')
+    ? 'kotlin'
+    : p.endsWith('.c')
+      ? 'c'
+      : p.endsWith('.java')
+        ? 'java'
+        : null;
+const label = { kotlin: 'Kotlin', c: 'C', java: 'Java' };
+let workspace = loadWorkspace(),
+  activePath = Object.keys(workspace.files)[0] || 'Kotlin/Main.kt',
+  busy = false;
+const $ = (id) => document.getElementById(id),
+  editor = $('editor'),
+  output = $('output');
+function loadWorkspace() {
+  try {
+    const x = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (x && x.files && Object.keys(x.files).length) return x;
+  } catch {}
+  return { files: { ...samples }, folders: ['Kotlin', 'C', 'Java'] };
+}
+function persist() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(workspace));
+    $('dirtyMark').textContent = '';
+  } catch (e) {
+    toast(
+      'Não foi possível salvar: armazenamento cheio. Exporte o projeto em ZIP.',
+    );
+  }
+}
+function toast(s) {
+  const t = $('toast');
+  t.textContent = s;
+  t.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+function extIcon(path) {
+  const l = langFor(path);
+  return l === 'kotlin'
+    ? ['kt', 'K']
+    : l === 'c'
+      ? ['c', 'C']
+      : l === 'java'
+        ? ['java', 'J']
+        : ['other', '·'];
+}
+function renderTree() {
+  const tree = $('fileTree');
+  tree.innerHTML = '';
+  const folders = new Set(workspace.folders || []);
+  Object.keys(workspace.files).forEach((p) => {
+    const parts = p.split('/');
+    if (parts.length > 1) folders.add(parts.slice(0, -1).join('/'));
+  });
+  [...folders].sort().forEach((folder) => {
+    const row = document.createElement('div');
+    row.className = 'folder-row';
+    row.innerHTML = `<span>▾</span><span class="folder-icon">📁</span><span></span>`;
+    row.children[2].textContent = folder;
+    tree.appendChild(row);
+    Object.keys(workspace.files)
+      .filter((p) => p.startsWith(folder + '/'))
+      .sort()
+      .forEach((path) => {
+        const b = document.createElement('button');
+        b.className = 'file ' + (path === activePath ? 'active' : '');
+        const [cls, letter] = extIcon(path);
+        const name = path.slice(path.lastIndexOf('/') + 1);
+        b.innerHTML = `<i class="${cls}">${letter}</i><span></span><span class="file-menu" title="Ações">···</span>`;
+        b.children[1].textContent = name;
+        b.title = path;
+        b.onclick = () => openFile(path);
+        b.querySelector('.file-menu').onclick = (e) => {
+          e.stopPropagation();
+          fileActions(path);
+        };
+        tree.appendChild(b);
+      });
+  });
+  if (!Object.keys(workspace.files).length)
+    tree.innerHTML =
+      '<p class="empty-tree">Nenhum arquivo. Crie um arquivo para começar.</p>';
+}
+function openFile(path) {
+  if (!(path in workspace.files)) return;
+  activePath = path;
+  editor.value = workspace.files[path];
+  const l = langFor(path);
+  $('tabName').textContent = path.split('/').pop();
+  const [cls, letter] = extIcon(path);
+  $('tabIcon').className = cls;
+  $('tabIcon').textContent = letter;
+  $('filePath').textContent = 'MEU PROJETO / ' + path;
+  $('languageLabel').textContent = l ? label[l] : 'Texto';
+  $('runBtn').disabled = !l;
+  lineCount();
+  updateCursor();
+  renderTree();
+  output.textContent = 'Arquivo aberto: ' + path;
+  $('runStatus').textContent = 'Pronto';
+}
+function lineCount() {
+  const n = editor.value.split('\n').length;
+  $('lineNumbers').textContent = Array.from(
+    { length: n },
+    (_, i) => i + 1,
+  ).join('\n');
+}
+function updateCursor() {
+  const before = editor.value.slice(0, editor.selectionStart).split('\n');
+  $('cursorPos').textContent =
+    `Ln ${before.length}, Col ${before.at(-1).length + 1}`;
+}
+function saveActive() {
+  if (activePath) workspace.files[activePath] = editor.value;
+  persist();
+}
+function createFile() {
+  let path = prompt(
+    'Caminho do arquivo (ex.: Kotlin/Exercicio.kt):',
+    'Kotlin/Novo.kt',
+  );
+  if (!path) return;
+  path = path.trim().replace(/^\/+|\\/g, '');
+  if (!path || path.split('/').some((x) => !x || x === '..'))
+    return toast('Caminho inválido.');
+  if (path in workspace.files)
+    return toast('Já existe um arquivo com esse nome.');
+  workspace.files[path] = langFor(path) ? '// Escreva seu código aqui\n' : '';
+  workspace.folders = [
+    ...new Set(
+      [
+        ...(workspace.folders || []),
+        path.split('/').slice(0, -1).join('/'),
+      ].filter(Boolean),
+    ),
+  ];
+  persist();
+  renderTree();
+  openFile(path);
+  toast('Arquivo criado.');
+}
+function createFolder() {
+  let name = prompt('Nome da pasta (ex.: Algoritmos):');
+  if (!name) return;
+  name = name.trim().replace(/^\/+|\\/g, '');
+  if (!name || name.split('/').some((x) => !x || x === '..'))
+    return toast('Nome inválido.');
+  workspace.folders = [...new Set([...(workspace.folders || []), name])];
+  persist();
+  renderTree();
+  toast('Pasta criada.');
+}
+function fileActions(path) {
+  const action = prompt(
+    `Ação para ${path}:\n1 - Renomear/mover\n2 - Excluir\nDigite 1 ou 2:`,
+  );
+  if (action === '1') {
+    const next = prompt('Novo caminho:', path);
+    if (!next || next === path) return;
+    if (
+      next.split('/').some((x) => !x || x === '..') ||
+      next in workspace.files
+    )
+      return toast('Novo caminho inválido ou já existente.');
+    workspace.files[next] = workspace.files[path];
+    delete workspace.files[path];
+    if (activePath === path) activePath = next;
+    persist();
+    renderTree();
+    openFile(activePath);
+    toast('Arquivo renomeado.');
+  } else if (action === '2') {
+    if (!confirm(`Excluir ${path}?`)) return;
+    delete workspace.files[path];
+    if (activePath === path) activePath = Object.keys(workspace.files)[0] || '';
+    persist();
+    renderTree();
+    if (activePath) openFile(activePath);
+    else {
+      editor.value = '';
+      $('tabName').textContent = 'Nenhum arquivo';
+      lineCount();
+    }
+    toast('Arquivo excluído.');
+  }
+}
+editor.addEventListener('input', () => {
+  lineCount();
+  updateCursor();
+  workspace.files[activePath] = editor.value;
+  $('dirtyMark').textContent = '●';
+  persistDebounced();
+});
+editor.addEventListener(
+  'scroll',
+  () => ($('lineNumbers').scrollTop = editor.scrollTop),
+);
+editor.addEventListener('click', updateCursor);
+editor.addEventListener('keyup', updateCursor);
+editor.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    editor.setRangeText(
+      '    ',
+      editor.selectionStart,
+      editor.selectionEnd,
+      'end',
+    );
+    lineCount();
+    updateCursor();
+  }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    execute();
+  }
+});
+let saveTimer;
+function persistDebounced() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persist, 250);
+}
+async function execute() {
+  if (busy) return;
+  const language = langFor(activePath);
+  if (!language) return toast('Escolha um arquivo .kt, .c ou .java.');
+  saveActive();
+  busy = true;
+  $('runBtn').disabled = true;
+  $('runBtn').textContent = 'Executando…';
+  $('runStatus').textContent = 'Compilando remotamente…';
+  output.className = '';
+  output.textContent = 'Enviando código para o serviço de compilação…';
+  try {
+    const runtimes = await fetch('https://emkc.org/api/v2/piston/runtimes');
+    if (!runtimes.ok)
+      throw new Error('Não foi possível consultar os compiladores.');
+    const available = await runtimes.json();
+    const aliases = { kotlin: ['kotlin'], c: ['c', 'gcc'], java: ['java'] };
+    const runtime = available.find((x) =>
+      aliases[language].includes(x.language),
+    );
+    if (!runtime)
+      throw new Error(`O serviço não anunciou suporte a ${label[language]}.`);
+    const filename = activePath.split('/').pop();
+    const payload = {
+      language: runtime.language,
+      version: runtime.version,
+      files: [{ name: filename, content: editor.value }],
+      stdin: $('stdin').value,
+      args: [],
+      compile_timeout: 20000,
+      run_timeout: 8000,
+      compile_memory_limit: -1,
+      run_memory_limit: -1,
+    };
+    const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.message || `Erro HTTP ${response.status}`);
+    let text = '';
+    if (data.compile) {
+      text +=
+        '[COMPILAÇÃO]\n' +
+        (data.compile.output || '(sem mensagens)') +
+        '\nCódigo: ' +
+        data.compile.code +
+        '\n\n';
+    }
+    if (data.run) {
+      text +=
+        '[EXECUÇÃO]\n' +
+        (data.run.stdout || '') +
+        (data.run.stderr ? '\n[ERRO]\n' + data.run.stderr : '') +
+        '\n\nCódigo de saída: ' +
+        data.run.code;
+    } else {
+      text += data.message || 'O serviço não retornou resultado.';
+    }
+    output.textContent = text;
+    const ok =
+      (!data.compile || data.compile.code === 0) &&
+      data.run &&
+      data.run.code === 0;
+    output.className = ok ? 'success' : 'error';
+    $('runStatus').textContent = ok ? 'Concluído' : 'Verifique a saída';
+  } catch (e) {
+    output.textContent =
+      'Não foi possível executar o código.\n\n' +
+      e.message +
+      '\n\nVerifique sua conexão e tente novamente. A execução depende da API pública Piston e pode estar indisponível, limitada ou bloquear chamadas do navegador.';
+    output.className = 'error';
+    $('runStatus').textContent = 'Falha na execução';
+  } finally {
+    busy = false;
+    $('runBtn').disabled = false;
+    $('runBtn').innerHTML = '<span>▶</span> Executar';
+  }
+}
+$('runBtn').onclick = execute;
+$('saveBtn').onclick = () => {
+  saveActive();
+  toast('Projeto salvo neste navegador.');
+};
+$('newFile').onclick = $('newFileBottom').onclick = createFile;
+$('newFolder').onclick = createFolder;
+$('clearOutput').onclick = () => {
+  output.textContent = 'Saída limpa.';
+  output.className = '';
+};
+$('togglePanel').onclick = () =>
+  document.querySelector('.bottom-panel').classList.toggle('collapsed');
+document.querySelectorAll('.panel-tab').forEach(
+  (b) =>
+    (b.onclick = () => {
+      document
+        .querySelectorAll('.panel-tab')
+        .forEach((x) => x.classList.toggle('active', x === b));
+      $('terminal').classList.toggle('hidden', b.dataset.panel !== 'terminal');
+      $('stdinPanel').classList.toggle('hidden', b.dataset.panel !== 'stdin');
+    }),
+);
+$('exportBtn').onclick = async () => {
+  saveActive();
+  if (!window.JSZip)
+    return toast('Biblioteca ZIP não carregou. Verifique a internet.');
+  const zip = new JSZip();
+  Object.entries(workspace.files).forEach(([p, c]) => zip.file(p, c));
+  (workspace.folders || []).forEach((p) => zip.folder(p));
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'CodeLab-Projetos.zip';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('ZIP exportado.');
+};
+$('importBtn').onclick = () => $('zipInput').click();
+$('zipInput').onchange = async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    const zip = await JSZip.loadAsync(f);
+    const imported = {};
+    const folders = [];
+    for (const [p, item] of Object.entries(zip.files)) {
+      if (item.dir) {
+        folders.push(p.replace(/\/$/, ''));
+        continue;
+      }
+      if (p.split('/').some((x) => x === '..')) continue;
+      imported[p] = await item.async('string');
+    }
+    if (!Object.keys(imported).length)
+      throw new Error('O ZIP não contém arquivos.');
+    if (
+      !confirm(
+        `Importar ${Object.keys(imported).length} arquivo(s)? Arquivos com o mesmo caminho serão substituídos.`,
+      )
+    )
+      return;
+    workspace.files = { ...workspace.files, ...imported };
+    workspace.folders = [
+      ...new Set([...(workspace.folders || []), ...folders]),
+    ];
+    persist();
+    renderTree();
+    const first = Object.keys(imported)[0];
+    openFile(first);
+    toast('Projeto importado.');
+  } catch (err) {
+    toast('Falha ao importar ZIP: ' + err.message);
+  } finally {
+    e.target.value = '';
+  }
+};
+const challenges = [
+  [
+    'Par ou ímpar',
+    'iniciante',
+    'Leia um inteiro e informe se é par ou ímpar.',
+    'Use o operador módulo (%).',
+  ],
+  [
+    'Média de notas',
+    'iniciante',
+    'Leia três notas, calcule a média e informe aprovação com média maior ou igual a 7.',
+    'Pratique entrada, operações e if/else.',
+  ],
+  [
+    'Tabuada',
+    'iniciante',
+    'Leia um número e mostre sua tabuada de 1 até 10.',
+    'Use uma estrutura de repetição.',
+  ],
+  [
+    'Fatorial',
+    'intermediario',
+    'Calcule o fatorial de um inteiro não negativo. Ex.: 5! = 120.',
+    'Comece com um laço e depois tente recursão.',
+  ],
+  [
+    'Número primo',
+    'intermediario',
+    'Verifique se um número é primo, tratando 0, 1 e negativos.',
+    'Teste divisores até a raiz quadrada.',
+  ],
+  [
+    'Maior e menor do vetor',
+    'intermediario',
+    'Leia 10 inteiros e encontre o maior e o menor.',
+    'Use vetor/array e laço.',
+  ],
+  [
+    'Contagem de vogais',
+    'intermediario',
+    'Leia uma frase e conte suas vogais.',
+    'Percorra os caracteres e normalize maiúsculas.',
+  ],
+];
+function showChallenges(filter = 'all') {
+  $('challengeList').innerHTML = '';
+  challenges
+    .filter((c) => filter === 'all' || c[1] === filter)
+    .forEach((c) => {
+      const d = document.createElement('article');
+      d.className = 'challenge';
+      const h = document.createElement('h3');
+      h.textContent = c[0];
+      const tag = document.createElement('small');
+      tag.textContent = c[1].toUpperCase();
+      const p = document.createElement('p');
+      p.textContent = c[2];
+      const hint = document.createElement('p');
+      hint.textContent = '💡 ' + c[3];
+      d.append(h, tag, p, hint);
+      $('challengeList').append(d);
+    });
+}
+function openChallenges() {
+  $('challengeModal').classList.remove('hidden');
+  showChallenges();
+}
+$('openChallenges').onclick = $('challengeIcon').onclick = openChallenges;
+$('closeChallenges').onclick = () =>
+  $('challengeModal').classList.add('hidden');
+$('challengeModal').onclick = (e) => {
+  if (e.target === $('challengeModal'))
+    $('challengeModal').classList.add('hidden');
+};
+document.querySelectorAll('.filter').forEach(
+  (b) =>
+    (b.onclick = () => {
+      document
+        .querySelectorAll('.filter')
+        .forEach((x) => x.classList.toggle('active', x === b));
+      showChallenges(b.dataset.filter);
+    }),
+);
+$('compilerStatus').onclick = () => $('helpModal').classList.remove('hidden');
+$('closeHelp').onclick = () => $('helpModal').classList.add('hidden');
+renderTree();
+openFile(activePath);
+persist();
